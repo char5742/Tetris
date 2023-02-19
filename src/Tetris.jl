@@ -4,7 +4,7 @@ export mysleep, sleep60fps, get_key_state
 include("component/Component.jl")
 export Mino, GameBoard, Position, Action
 include("action.jl")
-export action!, valid_movement, move
+export action!, valid_movement, move, rotate
 include("move.jl")
 export MoveState
 include("game.jl")
