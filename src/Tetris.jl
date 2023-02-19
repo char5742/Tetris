@@ -8,7 +8,7 @@ export action!, valid_movement, move, rotate
 include("move.jl")
 export MoveState
 include("game.jl")
-export GameState, put_mino!
+export GameState, put_mino!, check_tspin
 include("gui.jl")
 export draw_game, draw_game2file, init_screen, endwin
 end # module Tetris
