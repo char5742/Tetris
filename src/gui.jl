@@ -55,6 +55,7 @@ struct PDCCOLOR
     mapped::Bool
 end
 curses = joinpath(PROJECT_ROOT, "pdcurses.dll")
+chmod(curses, filemode(curses) | 0o755)
 initscr() = ccall((:initscr, curses), Ptr{WINDOW}, ())
 endwin() = ccall((:endwin, curses), Cint, ())
 noecho() = ccall((:noecho, curses), Cint, ())
