@@ -36,8 +36,10 @@ function GameState()
 end
 
 function GameState(state::GameState)::GameState
-    current_game_board = deepcopy(state.current_game_board)
-    mino_list = deepcopy(state.mino_list)
+    current_game_board = GameBoard()
+    current_game_board.binary .= state.current_game_board.binary
+    current_game_board.color .= state.current_game_board.color
+    mino_list = [state.mino_list...]
     currnet_mino = state.current_mino
     hold_mino = state.hold_mino
     current_position = state.current_position
