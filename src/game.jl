@@ -62,7 +62,7 @@ function action!(state::GameState, action::Action)
     action.hold && hold!(state)
     action.hard_drop && hard_drop!(state)
     # 最後に行った有効な操作でtspinを判定
-    if valid && action.x != 0 || action.y != 0 || action.rotate != 0
+    if valid && (action.x != 0 || action.y != 0 || action.rotate != 0)
         # 移動、回転操作で回転であれば TSPIN 可と判定
         state.t_spin_flag = action.rotate != 0
     end
@@ -226,7 +226,7 @@ t-spin判定\\
 1 t-spin mini\\
 2 t-spin
 """
-function check_tspin(mino::Mino, pos_x, pos_y, direction::DirectionEnum, gamebord, t_spin_flag)::Int
+function check_tspin(mino::Mino, pos_x, pos_y, direction::DirectionEnum, gamebord::Matrix{T}, t_spin_flag)::Int where T
     if mino != TetrisMino.t_mino || !t_spin_flag
         return 0
     end
@@ -235,14 +235,14 @@ function check_tspin(mino::Mino, pos_x, pos_y, direction::DirectionEnum, gamebor
     upper = pos_y + 1
     lower = upper + 2
     height, width = size(gamebord)
-    bord = ones(height + 2, width + 2)
+    bord = ones(T,height + 2, width + 2)
     bord[2:end-1, 2:end-1] = gamebord
     lu = bord[upper, left]
     ll = bord[lower, left]
     ru = bord[upper, right]
     rl = bord[lower, right]
     if lu + ll + ru + rl >= 3
-        if direction == Direction.nort
+        if direction == Direction.north
             return lu == ru ? 2 : 1
         elseif direction == Direction.west
             return lu == ll ? 2 : 1

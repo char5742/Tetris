@@ -32,7 +32,7 @@ function Mino(mino::Mino)::Mino
     end
 end
 
-Base.isequal(a::Mino, b::Mino) = a.name == b.name
+Base.:(==)(a::Mino, b::Mino) = a.name == b.name
 
 const i_mino = Mino(
     "Imino",
