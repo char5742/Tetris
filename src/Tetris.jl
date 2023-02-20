@@ -1,4 +1,5 @@
 module Tetris
+include("const.jl")
 include("utils/Utils.jl")
 export mysleep, sleep60fps, get_key_state
 include("component/Component.jl")

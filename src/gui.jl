@@ -1,6 +1,10 @@
+
+module GUI
+
 using Printf
+include("const.jl")
 # ANSIエスケープシーケンス
-Color = Dict(
+const Color = Dict(
     :black => "\e[30m",
     :red => "\e[31m",
     :blue => "\e[34m",
@@ -30,10 +34,13 @@ const block_color = [
     (100, 100, 100),
 ]
 
+const col = 10  # 10 columns
+const row = 20  # 20 rows
+
+
 colored(str::String, sym) = string(Color[sym], str, Color[:end])
 colored(str::String, i::Integer) = string(@sprintf("\e[48;2;%s;%s;%sm", block_color[(i-1)%11+1]...), str, Color[:end])
-col = 10  # 10 columns
-row = 20  # 20 rows
+
 
 function open_terminal()
     run(`cmd /c start  powershell "Get-Content .\\bord.txt -Wait -Tail 24"`, wait=false)
@@ -47,7 +54,7 @@ struct PDCCOLOR
     b::Int16
     mapped::Bool
 end
-curses = "./pdcurses.dll"
+curses = joinpath(PROJECT_ROOT, "pdcurses.dll")
 initscr() = ccall((:initscr, curses), Ptr{WINDOW}, ())
 endwin() = ccall((:endwin, curses), Cint, ())
 noecho() = ccall((:noecho, curses), Cint, ())
@@ -66,21 +73,29 @@ attrset(color::PDCCOLOR) = ccall((:attrset, curses), Cint, (PDCCOLOR,), color)
 attrset(n::Int) = ccall((:attrset, curses), Cint, (Cint,), n)
 color_set(n::Int) = ccall((:color_set, curses), Cint, (Cshort, Ptr{Cvoid}), n, C_NULL)
 
-function init_screen()::Ptr{WINDOW}
-    window = initscr()
+end
+
+import .GUI
+
+function init_screen()::Ptr{GUI.WINDOW}
+    window = GUI.initscr()
     if (window == C_NULL)
         throw(ErrorException("can't init"))
     end
-    start_color()
-    noecho()
-    curs_set(0)
-    for (i, c) in enumerate(block_color)
+    GUI.start_color()
+    GUI.noecho()
+    GUI.curs_set(0)
+    for (i, c) in enumerate(GUI.block_color)
         # 標準の色番号とかぶらないように100番目からセット
-        init_color(100 + i, (c .* (1000 / 255) |> x -> floor.(Int, x))...)
-        init_pair(100 + i, 0, 100 + i)
+        GUI.init_color(100 + i, (c .* (1000 / 255) |> x -> floor.(Int, x))...)
+        GUI.init_pair(100 + i, 0, 100 + i)
     end
-    timeout(1)
+    GUI.timeout(1)
     window
+end
+
+function endwin()
+    GUI.endwin()
 end
 
 function draw_game(bord; score=0, last_score=0)
@@ -89,9 +104,9 @@ function draw_game(bord; score=0, last_score=0)
     print(io, "\e[1;1f")
     # カーソルよりあとを削除
     print(io, "\e[0J")
-    for i in 1:row
-        for j in 1:col
-            print(io, colored("  ", bord[i, j] + 1))
+    for i in 1:GUI.row
+        for j in 1:GUI.col
+            print(io, GUI.colored("  ", bord[i, j] + 1))
         end
         # カーソルに位置を一行下に
         print(io, "\e[1E")
@@ -103,9 +118,9 @@ function draw_game(bord; score=0, last_score=0)
 end
 
 function coloerd_mvaddstr(x, y, text, color)
-    color_set(color + 100)
-    mvaddstr(x, y, text)
-    attrset(0)
+    GUI.color_set(color + 100)
+    GUI.mvaddstr(x, y, text)
+    GUI.attrset(0)
 end
 
 function draw_game(state::GameState; last_score=0)
@@ -118,25 +133,25 @@ function draw_game(state::GameState; last_score=0)
     current_mino = zeros(Int, bord_h + 2, bord_w + 4)
     current_mino[pos_y:pos_y+h-1, pos_x+2:pos_x+w-1+2] += mino.block * mino.color
 
-    clear()
-    for i in 1:row
-        for j in 1:col
+    GUI.clear()
+    for i in 1:GUI.row
+        for j in 1:GUI.col
             coloerd_mvaddstr(i, 8 + j * 2, "  ", bord[5:end, :][i, j] + 1 + current_mino[1:end-2, 3:end-2][5:end, :][i, j])
         end
 
     end
     # NEXT描画
-    mvaddstr(2, 34, "next")
+    GUI.mvaddstr(2, 34, "next")
     coloerd_mvaddstr(3, 34, "$(state.mino_list[end].name)", state.mino_list[end].color + 1)
     for i in 1:4
         coloerd_mvaddstr(i + 4, 34, "$(state.mino_list[end-i].name)", state.mino_list[end-i].color + 1)
     end
     # HOLD描画
-    mvaddstr(2, 2, "hold")
+    GUI.mvaddstr(2, 2, "hold")
     !isnothing(state.hold_mino) && coloerd_mvaddstr(3, 2, "$(state.hold_mino.name)", state.hold_mino.color + 1)
-    mvaddstr(10, 34, string("score: ", state.score))
-    mvaddstr(12, 34, string("REN: ", state.combo))
-    refresh()
+    GUI.mvaddstr(10, 34, string("score: ", state.score))
+    GUI.mvaddstr(12, 34, string("REN: ", state.combo))
+    GUI.refresh()
     # gamec.game_over_flag && print(io, "\e[14;34f", "BtB")
 end
 
@@ -158,9 +173,9 @@ function draw_game2file(bord; score=0, last_score=0)
     print(io, "\e[1;1f")
     # カーソルよりあとを削除
     print(io, "\e[0J")
-    for i in 1:row
-        for j in 1:col
-            print(io, colored("  ", bord[i, j] + 1))
+    for i in 1:GUI.row
+        for j in 1:GUI.col
+            print(io, GUI.colored("  ", bord[i, j] + 1))
         end
         # カーソルに位置を一行下に
         print(io, "\e[1E")
@@ -178,3 +193,4 @@ function getc1()
     ccall(:jl_tty_set_mode, Int32, (Ptr{Cvoid}, Int32), stdin.handle, false)
     c
 end
+

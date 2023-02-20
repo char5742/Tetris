@@ -1,0 +1,1 @@
+const PROJECT_ROOT = normpath(joinpath(@__DIR__,".."))

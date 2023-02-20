@@ -7,4 +7,4 @@ const VK_UP = 0x26
 const VK_RIGHT = 0x27
 const VK_DOWN = 0x28
 const VK_Z = 0x5A
-get_key_state(key::Symbol) = ccall((:getkeystate, "./game.so"), Int32, (Int32,), eval(key))
+get_key_state(key::Symbol) = ccall((:getkeystate, joinpath(PROJECT_ROOT,"game.so")), Int32, (Int32,), eval(key))
