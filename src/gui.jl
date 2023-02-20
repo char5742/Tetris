@@ -129,7 +129,7 @@ function draw_game(state::GameState; last_score=0)
     mvaddstr(2, 34, "next")
     coloerd_mvaddstr(3, 34, "$(state.mino_list[end].name)", state.mino_list[end].color + 1)
     for i in 1:4
-        coloerd_mvaddstr(i + 4, 34, "$(state.mino_list[end-i+1].name)", state.mino_list[end-i+1].color + 1)
+        coloerd_mvaddstr(i + 4, 34, "$(state.mino_list[end-i].name)", state.mino_list[end-i].color + 1)
     end
     # HOLD描画
     mvaddstr(2, 2, "hold")
