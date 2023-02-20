@@ -16,23 +16,40 @@ mutable struct GameState
     hard_drop_flag::Bool
     "最後のアクションがTSPIN条件を満たしているかどうか"
     t_spin_flag::Bool
+end
 
-    function GameState()
-        current_game_board = GameBoard()
-        mino_list = append!(generate_mino_list(), generate_mino_list())
-        currnet_mino = pop!(mino_list)
-        hold_mino = nothing
-        current_position = Position(currnet_mino)
-        score = 0.0
-        combo = 0
-        combo_flag = false
-        back_to_back_flag = false
-        game_over_flag = false
-        hold_flag = true
-        hard_drop_flag = false
-        t_spin_flag = false
-        return new(current_game_board, currnet_mino, current_position, hold_mino, mino_list, score, combo, combo_flag, back_to_back_flag, game_over_flag, hold_flag, hard_drop_flag, t_spin_flag)
-    end
+function GameState()
+    current_game_board = GameBoard()
+    mino_list = append!(generate_mino_list(), generate_mino_list())
+    currnet_mino = pop!(mino_list)
+    hold_mino = nothing
+    current_position = Position(currnet_mino)
+    score = 0.0
+    combo = 0
+    combo_flag = false
+    back_to_back_flag = false
+    game_over_flag = false
+    hold_flag = true
+    hard_drop_flag = false
+    t_spin_flag = false
+    return GameState(current_game_board, currnet_mino, current_position, hold_mino, mino_list, score, combo, combo_flag, back_to_back_flag, game_over_flag, hold_flag, hard_drop_flag, t_spin_flag)
+end
+
+function GameState(state::GameState)::GameState
+    current_game_board = deepcopy(state.current_game_board)
+    mino_list = deepcopy(state.mino_list)
+    currnet_mino = state.current_mino
+    hold_mino = state.hold_mino
+    current_position = state.current_position
+    score = state.score
+    combo = state.combo
+    combo_flag = state.combo_flag
+    back_to_back_flag = state.back_to_back_flag
+    game_over_flag = state.game_over_flag
+    hold_flag = state.hold_flag
+    hard_drop_flag = state.hard_drop_flag
+    t_spin_flag = state.t_spin_flag
+    return GameState(current_game_board, currnet_mino, current_position, hold_mino, mino_list, score, combo, combo_flag, back_to_back_flag, game_over_flag, hold_flag, hard_drop_flag, t_spin_flag)
 end
 
 
@@ -226,7 +243,7 @@ t-spin判定\\
 1 t-spin mini\\
 2 t-spin
 """
-function check_tspin(mino::Mino, pos_x, pos_y, direction::DirectionEnum, gamebord::Matrix{T}, t_spin_flag)::Int where T
+function check_tspin(mino::Mino, pos_x, pos_y, direction::DirectionEnum, gamebord::Matrix{T}, t_spin_flag)::Int where {T}
     if mino != TetrisMino.t_mino || !t_spin_flag
         return 0
     end
@@ -235,7 +252,7 @@ function check_tspin(mino::Mino, pos_x, pos_y, direction::DirectionEnum, gamebor
     upper = pos_y + 1
     lower = upper + 2
     height, width = size(gamebord)
-    bord = ones(T,height + 2, width + 2)
+    bord = ones(T, height + 2, width + 2)
     bord[2:end-1, 2:end-1] = gamebord
     lu = bord[upper, left]
     ll = bord[lower, left]

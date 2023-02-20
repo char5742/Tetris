@@ -1,7 +1,7 @@
 name = "Tetris"
 uuid = "7b9bd417-ef73-4d3d-bf88-d74753caa289"
 authors = ["char5742 <f.shuuma@gmail.com>"]
-version = "0.1.7"
+version = "0.1.8"
 
 [deps]
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
