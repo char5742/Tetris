@@ -16,11 +16,12 @@ mutable struct GameState
     hard_drop_flag::Bool
     "最後のアクションがTSPIN条件を満たしているかどうか"
     t_spin_flag::Bool
+    rng::AbstractRNG
 end
 
-function GameState()
+function GameState(rng = Random.GLOBAL_RNG)
     current_game_board = GameBoard()
-    mino_list = append!(generate_mino_list(), generate_mino_list())
+    mino_list = append!(generate_mino_list(rng), generate_mino_list(rng))
     currnet_mino = pop!(mino_list)
     hold_mino = nothing
     current_position = Position(currnet_mino)
@@ -32,7 +33,8 @@ function GameState()
     hold_flag = true
     hard_drop_flag = false
     t_spin_flag = false
-    return GameState(current_game_board, currnet_mino, current_position, hold_mino, mino_list, score, combo, combo_flag, back_to_back_flag, game_over_flag, hold_flag, hard_drop_flag, t_spin_flag)
+    rng = rng
+    return GameState(current_game_board, currnet_mino, current_position, hold_mino, mino_list, score, combo, combo_flag, back_to_back_flag, game_over_flag, hold_flag, hard_drop_flag, t_spin_flag, rng)
 end
 
 function GameState(state::GameState)::GameState
@@ -51,16 +53,17 @@ function GameState(state::GameState)::GameState
     hold_flag = state.hold_flag
     hard_drop_flag = state.hard_drop_flag
     t_spin_flag = state.t_spin_flag
-    return GameState(current_game_board, currnet_mino, current_position, hold_mino, mino_list, score, combo, combo_flag, back_to_back_flag, game_over_flag, hold_flag, hard_drop_flag, t_spin_flag)
+    rng = state.rng
+    return GameState(current_game_board, currnet_mino, current_position, hold_mino, mino_list, score, combo, combo_flag, back_to_back_flag, game_over_flag, hold_flag, hard_drop_flag, t_spin_flag, rng)
 end
 
 
 """
 1巡のMINOを生成
 """
-function generate_mino_list()::Vector{Mino}
+function generate_mino_list(rng = Random.GLOBAL_RNG)::Vector{Mino}
     mino_list::Vector{Mino} = [e for e in TetrisMino.minos]
-    shuffle!(mino_list)
+    shuffle!(rng, mino_list)
     return mino_list
 end
 
@@ -116,7 +119,7 @@ NEXTをセット
 function set_current_mino!(state::GameState)
     state.current_mino = pop!(state.mino_list)
     if length(state.mino_list) < 8
-        state.mino_list = append!(generate_mino_list(), state.mino_list)
+        state.mino_list = append!(generate_mino_list(state.rng), state.mino_list)
     end
     currnet_minoblock = state.current_mino.block
     spawn_position = Position(state.current_mino)
