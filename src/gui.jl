@@ -139,7 +139,7 @@ function draw_game(state::GameState; step=1)
     h, w = size(mino.block)
     current_mino = zeros(Int, board_h + 2, board_w + 4)
     current_mino[pos_y:pos_y+h-1, pos_x+2:pos_x+w-1+2] += mino.block * mino.color
-    draw_game(board + current_mino; score=state.score, ren=state.combo, hold=state.hold_mino, next=state.mino_list[end-4:end])
+    draw_game(board + current_mino[1:end-2, 3:end-2]; score=state.score, ren=state.combo, hold=state.hold_mino, next=state.mino_list[end-4:end], step=step)
 end
 
 function draw_game2file(board; score=0, last_score=0)
