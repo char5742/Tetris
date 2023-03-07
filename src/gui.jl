@@ -43,7 +43,7 @@ colored(str::String, i::Integer) = string(@sprintf("\e[48;2;%s;%s;%sm", block_co
 
 
 function open_terminal()
-    run(`cmd /c start  powershell "Get-Content .\\bord.txt -Wait -Tail 24"`, wait=false)
+    run(`cmd /c start  powershell "Get-Content .\\board.txt -Wait -Tail 24"`, wait=false)
 end
 
 struct WINDOW
@@ -99,23 +99,29 @@ function endwin()
     GUI.endwin()
 end
 
-function draw_game(bord; score=0, last_score=0)
-    io = IOBuffer()
-    # 先頭荷カーソル移動
-    print(io, "\e[1;1f")
-    # カーソルよりあとを削除
-    print(io, "\e[0J")
+function draw_game(board; score=nothing, ren=nothing, hold=nothing, next=nothing, step=1)
+
+    GUI.clear()
     for i in 1:GUI.row
         for j in 1:GUI.col
-            print(io, GUI.colored("  ", bord[i, j] + 1))
+            coloerd_mvaddstr(i, 8 + j * 2, "  ", board[5:end, :][i, j] + 1)
         end
-        # カーソルに位置を一行下に
-        print(io, "\e[1E")
+
     end
-    print(io, "\e[3;24f", "score", score)
-    # カーソル位置を一番下に
-    print(io, "\e[17E")
-    println(String(take!(io)))
+    # NEXT描画
+    GUI.mvaddstr(2, 34, "next")
+    coloerd_mvaddstr(3, 34, "$(next[end].name)", next[end].color + 1)
+    for i in 1:4
+        coloerd_mvaddstr(i + 4, 34, "$(next[end-i].name)", next[end-i].color + 1)
+    end
+    # HOLD描画
+    GUI.mvaddstr(2, 2, "hold")
+    !isnothing(hold) && coloerd_mvaddstr(3, 2, "$(hold.name)", hold.color + 1)
+    !isnothing(score) && GUI.mvaddstr(10, 34, string("score: ", score))
+    !isnothing(score) && GUI.mvaddstr(10, 34, string("mscore: ", score / step))
+    !isnothing(ren) && GUI.mvaddstr(12, 34, string("REN: ", ren))
+    GUI.refresh()
+    # gamec.game_over_flag && print(io, "\e[14;34f", "BtB")
 end
 
 function coloerd_mvaddstr(x, y, text, color)
@@ -124,51 +130,19 @@ function coloerd_mvaddstr(x, y, text, color)
     GUI.attrset(0)
 end
 
-function draw_game(state::GameState; last_score=0)
+function draw_game(state::GameState; step=1)
     mino = state.current_mino
-    bord = state.current_game_board.color
+    board = state.current_game_board.color
     pos_x = state.current_position.x
     pos_y = state.current_position.y
-    bord_h, bord_w = size(bord)
+    board_h, board_w = size(board)
     h, w = size(mino.block)
-    current_mino = zeros(Int, bord_h + 2, bord_w + 4)
+    current_mino = zeros(Int, board_h + 2, board_w + 4)
     current_mino[pos_y:pos_y+h-1, pos_x+2:pos_x+w-1+2] += mino.block * mino.color
-
-    GUI.clear()
-    for i in 1:GUI.row
-        for j in 1:GUI.col
-            coloerd_mvaddstr(i, 8 + j * 2, "  ", bord[5:end, :][i, j] + 1 + current_mino[1:end-2, 3:end-2][5:end, :][i, j])
-        end
-
-    end
-    # NEXT描画
-    GUI.mvaddstr(2, 34, "next")
-    coloerd_mvaddstr(3, 34, "$(state.mino_list[end].name)", state.mino_list[end].color + 1)
-    for i in 1:4
-        coloerd_mvaddstr(i + 4, 34, "$(state.mino_list[end-i].name)", state.mino_list[end-i].color + 1)
-    end
-    # HOLD描画
-    GUI.mvaddstr(2, 2, "hold")
-    !isnothing(state.hold_mino) && coloerd_mvaddstr(3, 2, "$(state.hold_mino.name)", state.hold_mino.color + 1)
-    GUI.mvaddstr(10, 34, string("score: ", state.score))
-    GUI.mvaddstr(12, 34, string("REN: ", state.combo))
-    GUI.refresh()
-    # gamec.game_over_flag && print(io, "\e[14;34f", "BtB")
+    draw_game(board + current_mino[1:end-2, 3:end-2]; score=state.score, ren=state.combo, hold=state.hold_mino, next=state.mino_list[end-4:end], step=step)
 end
 
-function draw_game2file(bord; score=0, last_score=0)
-    # open("bord.txt", "w") do io
-    #     # 先頭荷カーソル移動
-    #     print(io, "\e[1;1f")
-    #     # カーソルよりあとを削除
-    #     print(io, "\e[0J")
-    #     for i in 1:row
-    #         for j in 1:col
-    #             print(io, colored("  ", bord[i, j] + 1))
-    #         end
-    #         println(io, i == 4 ? "         score $score" : "")
-    #     end
-    # end
+function draw_game2file(board; score=0, last_score=0)
     io = IOBuffer()
     # 先頭荷カーソル移動
     print(io, "\e[1;1f")
@@ -176,7 +150,7 @@ function draw_game2file(bord; score=0, last_score=0)
     print(io, "\e[0J")
     for i in 1:GUI.row
         for j in 1:GUI.col
-            print(io, GUI.colored("  ", bord[i, j] + 1))
+            print(io, GUI.colored("  ", board[i, j] + 1))
         end
         # カーソルに位置を一行下に
         print(io, "\e[1E")
@@ -184,7 +158,7 @@ function draw_game2file(bord; score=0, last_score=0)
     print(io, "\e[3;24f", "score", score)
     # カーソル位置を一番下に
     print(io, "\e[17E")
-    open(f -> println(f, String(take!(io))), "bord.txt", "w")
+    open(f -> println(f, String(take!(io))), "board.txt", "w")
 end
 
 function getc1()
