@@ -118,8 +118,8 @@ function draw_game(board; score=nothing, ren=nothing, hold=nothing, next=nothing
     GUI.mvaddstr(2, 2, "hold")
     !isnothing(hold) && coloerd_mvaddstr(3, 2, "$(hold.name)", hold.color + 1)
     !isnothing(score) && GUI.mvaddstr(10, 34, string("score: ", score))
-    !isnothing(score) && GUI.mvaddstr(10, 34, string("mscore: ", score / step))
-    !isnothing(ren) && GUI.mvaddstr(12, 34, string("REN: ", ren))
+    !isnothing(score) && GUI.mvaddstr(11, 34, string("mscore: ", score / step))
+    !isnothing(ren) && GUI.mvaddstr(13, 34, string("REN: ", ren))
     GUI.refresh()
     # gamec.game_over_flag && print(io, "\e[14;34f", "BtB")
 end
