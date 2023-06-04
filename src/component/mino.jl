@@ -8,10 +8,10 @@ export Mino
 "テトリミノ"
 struct Mino
     name::String
-    color::Int64
+    color::Int8
     "北:0 西:1 南:2 東:3"
     direction::DirectionEnum
-    block::Matrix{Int64}
+    block::Matrix{Int8}
 end
 
 function Mino(mino::Mino)::Mino
