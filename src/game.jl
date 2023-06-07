@@ -6,8 +6,8 @@ mutable struct GameState
     current_position::Position
     hold_mino::Union{Mino,Nothing}
     mino_list::Vector{Mino}
-    score::Float64
-    combo::Int
+    score::Int64
+    combo::Int8
     "コンボが発生するかどうか。この値がtrueのときのみcomboが加算される"
     combo_flag::Bool
     back_to_back_flag::Bool
@@ -19,7 +19,7 @@ mutable struct GameState
     rng::AbstractRNG
 end
 
-function GameState(rng = Random.GLOBAL_RNG)
+function GameState(rng=Random.GLOBAL_RNG)
     current_game_board = GameBoard()
     mino_list = append!(generate_mino_list(rng), generate_mino_list(rng))
     currnet_mino = pop!(mino_list)
@@ -61,7 +61,7 @@ end
 """
 1巡のMINOを生成
 """
-function generate_mino_list(rng = Random.GLOBAL_RNG)::Vector{Mino}
+function generate_mino_list(rng=Random.GLOBAL_RNG)::Vector{Mino}
     mino_list::Vector{Mino} = [e for e in TetrisMino.minos]
     shuffle!(rng, mino_list)
     return mino_list
@@ -92,8 +92,8 @@ end
 
 "ハードドロップ 行ける限り下まで移動させる"
 function hard_drop!(state::GameState)
-    while valid_movement(state.current_mino, state.current_position, state.current_game_board.binary, 0, 1)
-        state.current_position = move(state.current_position, 0, 1)
+    while valid_movement(state.current_mino, state.current_position, state.current_game_board.binary, 0 |> Int8, 1 |> Int8)
+        state.current_position = move(state.current_position, 0 |> Int8, 1 |> Int8)
     end
     state.hard_drop_flag = true
 end
@@ -155,14 +155,14 @@ function delete_line!(state::GameState)::Int
     deleted_line_count = 0
     for (i, v) in enumerate(delete_line)
         if v == 10
-            delete_line!(state.current_game_board, i)
+            delete_line!(state.current_game_board, i |> Int8)
             deleted_line_count += 1
         end
     end
     deleted_line_count
 end
 
-function add_score!(state::GameState, deleted_line_num::Int, tspin::Int)
+function add_score!(state::GameState, deleted_line_num::Int, tspin::Int8)
     score = 0
     if deleted_line_num == 0
         state.combo_flag = false
@@ -215,7 +215,7 @@ function add_score!(state::GameState, deleted_line_num::Int, tspin::Int)
     state.combo_flag = true
 end
 
-function combo_power(combo::Int)
+function combo_power(combo::Int8)
     if combo < 2
         0
     elseif combo < 4
@@ -237,7 +237,7 @@ t-spin判定\\
 1 t-spin mini\\
 2 t-spin
 """
-function check_tspin(state::GameState)::Int
+function check_tspin(state::GameState)::Int8
     check_tspin(state.current_mino, state.current_position.x, state.current_position.y, state.current_mino.direction, state.current_game_board.binary, state.t_spin_flag)
 end
 

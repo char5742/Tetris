@@ -1,7 +1,7 @@
 struct GameBoard
-    color::Matrix{Int64}
-    binary::Matrix{Int64}
-    GameBoard() = new(zeros(Int64, 24, 10), zeros(Int64, 24, 10))
+    color::Matrix{Int8}
+    binary::Matrix{Int8}
+    GameBoard() = new(zeros(Int8, 24, 10), zeros(Int8, 24, 10))
 end
 
 """
@@ -18,7 +18,7 @@ function set_mino!(board::GameBoard, mino::Mino, position::Position)
     board.binary .= (x -> x > 0 ? 1 : 0).(board.color)
 end
 
-function delete_line!(board::GameBoard, y::Int)
+function delete_line!(board::GameBoard, y::Int8)
     color_board = board.color
     color_board[y, :] .= 0
     color_board[2:y, :] .= color_board[1:y-1, :]  # 1ラインづつずれる

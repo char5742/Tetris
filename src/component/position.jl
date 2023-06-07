@@ -1,6 +1,6 @@
 struct Position
-    x::Int64
-    y::Int64
+    x::Int8
+    y::Int8
 end
 
 function Position(mino::Mino)
