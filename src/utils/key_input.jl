@@ -1,13 +1,47 @@
-const VK_SHIFT = 0x10
-const VK_CONTROL = 0x11
-const VK_ESCAPE = 0x1B
-const VK_SPACE = 0x20
-const VK_LEFT = 0x25
-const VK_UP = 0x26
-const VK_RIGHT = 0x27
-const VK_DOWN = 0x28
-const VK_Z = 0x5A
 
-const _key_state_source= joinpath(PROJECT_ROOT,"game.so")
-chmod(_key_state_source, filemode(_key_state_source) | 0o755)
-get_key_state(key::Symbol) = ccall((:getkeystate, _key_state_source), Int32, (Int32,), eval(key))
+if Sys.iswindows()
+    const VK_SHIFT = 0x10
+    const VK_CONTROL = 0x11
+    const VK_ESCAPE = 0x1B
+    const VK_SPACE = 0x20
+    const VK_LEFT = 0x25
+    const VK_UP = 0x26
+    const VK_RIGHT = 0x27
+    const VK_DOWN = 0x28
+    const VK_Z = 0x5A
+    const _key_state_source = joinpath(PROJECT_ROOT, "lib/game.so")
+    chmod(_key_state_source, filemode(_key_state_source) | 0o755)
+    function get_key_state(key::Symbol)
+        ccall((:getkeystate, _key_state_source), Int32, (Int32,), eval(key))
+    end
+
+elseif Sys.isapple()
+    const VK_SHIFT = 0x10
+    const VK_CONTROL = 0x11
+    const VK_ESCAPE = 0x1B
+    const VK_SPACE = 0x20
+    const VK_LEFT = 260
+    const VK_UP = 259
+    const VK_RIGHT = 261
+    const VK_DOWN = 258
+    const VK_Z = 122
+    const VK_A = 97
+    const VK_S = 115
+    const VK_D = 100
+    curses = :libncurses
+    getch() = ccall((:getch, curses), Cint, ())
+    function get_current_key_state()::Vector{Int32}
+        buf  = Vector{Int32}()
+        ch = nothing 
+        while ch != -1
+            ch = getch()
+            push!(buf, ch)
+        end
+        @show buf
+        buf
+    end
+
+    function is_pushed(state, s::Symbol)::Int32
+        eval(s) in state
+    end
+end

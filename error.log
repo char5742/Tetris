@@ -1,0 +1,18 @@
+MethodError: no constructors have been defined for Main.Tetris.AbstractMino
+Stacktrace:
+ [1] hold!(state::GameState)
+   @ Main.Tetris ~/Workspace/programing/julia/Tetris/src/game.jl:181
+ [2] action!(state::GameState, #unused#::HoldAction)
+   @ Main.Tetris ~/Workspace/programing/julia/Tetris/src/game.jl:149
+ [3] manual(game_state::GameState, move_state::MoveState)
+   @ Main ~/Workspace/programing/julia/Tetris/main.jl:32
+ [4] main()
+   @ Main ~/Workspace/programing/julia/Tetris/main.jl:8
+ [5] top-level scope
+   @ ~/Workspace/programing/julia/Tetris/main.jl:81
+ [6] include(mod::Module, _path::String)
+   @ Base ./Base.jl:457
+ [7] exec_options(opts::Base.JLOptions)
+   @ Base ./client.jl:307
+ [8] _start()
+   @ Base ./client.jl:522

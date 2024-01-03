@@ -2,39 +2,56 @@ using Random
 "ゲームの状態"
 mutable struct GameState
     current_game_board::GameBoard
-    current_mino::Mino
+    current_mino::AbstractMino
     current_position::Position
-    hold_mino::Union{Mino,Nothing}
-    mino_list::Vector{Mino}
+    hold_mino::Union{AbstractMino, Nothing}
+    mino_list::Vector{AbstractMino}
     score::Int64
-    combo::Int8
-    "コンボが発生するかどうか。この値がtrueのときのみcomboが加算される"
-    combo_flag::Bool
+    ren::Int8
+    "レンが発生するかどうか。この値がtrueのときのみrenが加算される"
+    ren_flag::Bool
     back_to_back_flag::Bool
     game_over_flag::Bool
     hold_flag::Bool
     hard_drop_flag::Bool
     "最後のアクションがTSPIN条件を満たしているかどうか"
     t_spin_flag::Bool
+    "どのSRSで回転したか"
+    srs_index::Int8
     rng::AbstractRNG
 end
 
-function GameState(rng=Random.GLOBAL_RNG)
+function GameState(rng = Random.GLOBAL_RNG)
     current_game_board = GameBoard()
     mino_list = append!(generate_mino_list(rng), generate_mino_list(rng))
     currnet_mino = pop!(mino_list)
     hold_mino = nothing
     current_position = Position(currnet_mino)
     score = 0.0
-    combo = 0
-    combo_flag = false
+    ren = 0
+    ren_flag = false
     back_to_back_flag = false
     game_over_flag = false
     hold_flag = true
     hard_drop_flag = false
     t_spin_flag = false
+    srs_index = -1
     rng = rng
-    return GameState(current_game_board, currnet_mino, current_position, hold_mino, mino_list, score, combo, combo_flag, back_to_back_flag, game_over_flag, hold_flag, hard_drop_flag, t_spin_flag, rng)
+    return GameState(current_game_board,
+        currnet_mino,
+        current_position,
+        hold_mino,
+        mino_list,
+        score,
+        ren,
+        ren_flag,
+        back_to_back_flag,
+        game_over_flag,
+        hold_flag,
+        hard_drop_flag,
+        t_spin_flag,
+        srs_index,
+        rng)
 end
 
 function GameState(state::GameState)::GameState
@@ -46,23 +63,37 @@ function GameState(state::GameState)::GameState
     hold_mino = state.hold_mino
     current_position = state.current_position
     score = state.score
-    combo = state.combo
-    combo_flag = state.combo_flag
+    ren = state.ren
+    ren_flag = state.ren_flag
     back_to_back_flag = state.back_to_back_flag
     game_over_flag = state.game_over_flag
     hold_flag = state.hold_flag
     hard_drop_flag = state.hard_drop_flag
     t_spin_flag = state.t_spin_flag
+    srs_index = state.srs_index
     rng = state.rng
-    return GameState(current_game_board, currnet_mino, current_position, hold_mino, mino_list, score, combo, combo_flag, back_to_back_flag, game_over_flag, hold_flag, hard_drop_flag, t_spin_flag, rng)
+    return GameState(current_game_board,
+        currnet_mino,
+        current_position,
+        hold_mino,
+        mino_list,
+        score,
+        ren,
+        ren_flag,
+        back_to_back_flag,
+        game_over_flag,
+        hold_flag,
+        hard_drop_flag,
+        t_spin_flag,
+        srs_index,
+        rng)
 end
-
 
 """
 1巡のMINOを生成
 """
-function generate_mino_list(rng=Random.GLOBAL_RNG)::Vector{Mino}
-    mino_list::Vector{Mino} = [e for e in TetrisMino.minos]
+function generate_mino_list(rng = Random.GLOBAL_RNG)::Vector{AbstractMino}
+    mino_list::Vector{AbstractMino} = [e for e in MINOS]
     shuffle!(rng, mino_list)
     return mino_list
 end
@@ -70,30 +101,70 @@ end
 """
 操作
 """
-function action!(state::GameState, action::Action)
-    x, y, r = action.x, action.y, action.rotate
-    if r != 0
-        new_mino, new_position, _ = rotate(state.current_mino, state.current_position, state.current_game_board.binary, r)
-        state.current_mino = new_mino
-        state.current_position = new_position
+function action!(::GameState, ::AbstractAction)
+    # 未実装エラー
+    throw(ArgumentError("Umimplemented Error"))
+end
+
+function action!(state::GameState, action::RotateAction)
+    new_mino, new_position, is_valid, srs_index = rotate(state.current_mino,
+        state.current_position,
+        state.current_game_board.binary,
+        action.rotate)
+    state.current_mino = new_mino
+    state.current_position = new_position
+    state.srs_index = srs_index
+    if is_valid
+        state.t_spin_flag = true
     end
-    valid = valid_movement(state.current_mino, state.current_position, state.current_game_board.binary, x, y)
-    if (valid)
-        state.current_position = move(state.current_position, x, y)
-    end
-    action.hold && hold!(state)
-    action.hard_drop && hard_drop!(state)
-    # 最後に行った有効な操作でtspinを判定
-    if valid && (action.x != 0 || action.y != 0 || action.rotate != 0)
-        # 移動、回転操作で回転であれば TSPIN 可と判定
-        state.t_spin_flag = action.rotate != 0
-    end
+end
+
+function action!(state::GameState, action::HorizontalMoveAction)
+    x = action.x
+
+    new_position, _ = move(state.current_mino,
+        state.current_position,
+        state.current_game_board.binary,
+        x,
+        0 |> Int8)
+    state.current_position = new_position
+    state.t_spin_flag = false
+end
+
+function action!(state::GameState, ::DownwardMoveAction)
+    new_position, _ = move(state.current_mino,
+        state.current_position,
+        state.current_game_board.binary,
+        0 |> Int8,
+        1 |> Int8)
+    state.current_position = new_position
+    state.t_spin_flag = false
+end
+
+function action!(state::GameState, ::HardDropAction)
+    hard_drop!(state)
+end
+
+function action!(state::GameState, ::HoldAction)
+    hold!(state)
+    state.t_spin_flag = false
+end
+
+function action!(::GameState, ::EmptyAction)
+    nothing
 end
 
 "ハードドロップ 行ける限り下まで移動させる"
 function hard_drop!(state::GameState)
-    while valid_movement(state.current_mino, state.current_position, state.current_game_board.binary, 0 |> Int8, 1 |> Int8)
-        state.current_position = move(state.current_position, 0 |> Int8, 1 |> Int8)
+    is_valid = true
+    new_position = state.current_position
+    while is_valid
+        state.current_position = new_position
+        new_position, is_valid = move(state.current_mino,
+            state.current_position,
+            state.current_game_board.binary,
+            0 |> Int8,
+            1 |> Int8)
     end
     state.hard_drop_flag = true
 end
@@ -102,15 +173,18 @@ end
 function hold!(state::GameState)
     # ホールドをまだ使用していない場合
     if isnothing(state.hold_mino)
-        state.hold_mino = Mino(state.current_mino)
+        state.hold_mino = typeof(state.current_mino)()
         set_current_mino!(state)
         state.current_position = Position(state.current_mino)
+        state.hold_flag = false
+        return
     end
     if state.hold_flag
-        state.current_mino, state.hold_mino = Mino(state.hold_mino), Mino(state.current_mino)
+        state.current_mino, state.hold_mino = typeof(state.hold_mino)(),
+        typeof(state.current_mino)()
         state.current_position = Position(state.current_mino)
+        state.hold_flag = false
     end
-    state.hold_flag = false
 end
 
 """
@@ -124,7 +198,8 @@ function set_current_mino!(state::GameState)
     currnet_minoblock = state.current_mino.block
     spawn_position = Position(state.current_mino)
     h, w = size(currnet_minoblock)
-    if sum(state.current_game_board.binary[spawn_position.y:spawn_position.y+h-1, spawn_position.x:spawn_position.x+w-1] .* currnet_minoblock) != 0
+    if sum(state.current_game_board.binary[(spawn_position.y):(spawn_position.y + h - 1),
+        (spawn_position.x):(spawn_position.x + w - 1)] .* currnet_minoblock) != 0
         game_end!(state)
     end
     state.current_position = Position(state.current_mino)
@@ -151,7 +226,7 @@ end
 一列揃っているラインを消去
 """
 function delete_line!(state::GameState)::Int
-    delete_line = sum(state.current_game_board.binary, dims=2)
+    delete_line = sum(state.current_game_board.binary, dims = 2)
     deleted_line_count = 0
     for (i, v) in enumerate(delete_line)
         if v == 10
@@ -165,8 +240,8 @@ end
 function add_score!(state::GameState, deleted_line_num::Int, tspin::Int8)
     score = 0
     if deleted_line_num == 0
-        state.combo_flag = false
-        state.combo = 0
+        state.ren_flag = false
+        state.ren = 0
         return
     end
     if deleted_line_num == 1
@@ -178,14 +253,14 @@ function add_score!(state::GameState, deleted_line_num::Int, tspin::Int8)
         end
     elseif deleted_line_num == 2
         if tspin != 0
-            score = tspin == 1 ? 0 : 400
+            score = tspin == 1 ? 100 : 400
         else
             score = 100
             state.back_to_back_flag = false
         end
     elseif deleted_line_num == 3
         if tspin != 0
-            score = tspin == 1 ? 0 : 600
+            score = tspin == 1 ? 200 : 600
         else
             score = 200
             state.back_to_back_flag = false
@@ -204,27 +279,28 @@ function add_score!(state::GameState, deleted_line_num::Int, tspin::Int8)
         state.back_to_back_flag = true
     end
 
+    # 全消しであれはボーナス
     if sum(state.current_game_board.binary) == 0
         score += 1000
     end
-    score += combo_power(state.combo) * 100
+    score += ren_power(state.ren) * 100
     state.score += score
-    if state.combo_flag
-        state.combo += 1
+    if state.ren_flag
+        state.ren += 1
     end
-    state.combo_flag = true
+    state.ren_flag = true
 end
 
-function combo_power(combo::Int8)
-    if combo < 2
+function ren_power(ren::Int8)
+    if ren < 2
         0
-    elseif combo < 4
+    elseif ren < 4
         1
-    elseif combo < 6
+    elseif ren < 6
         2
-    elseif combo < 8
+    elseif ren < 8
         3
-    elseif combo < 11
+    elseif ren < 11
         4
     else
         5
@@ -238,9 +314,24 @@ t-spin判定\\
 2 t-spin
 """
 function check_tspin(state::GameState)::Int8
-    check_tspin(state.current_mino, state.current_position.x, state.current_position.y, state.current_mino.direction, state.current_game_board.binary, state.t_spin_flag)
+    check_tspin(state.current_mino,
+        state.current_position.x,
+        state.current_position.y,
+        state.current_mino.direction,
+        state.current_game_board.binary,
+        state.t_spin_flag,
+        state.srs_index)
 end
 
+function check_tspin(::AbstractMino,
+        pos_x,
+        pos_y,
+        ::AbstractDirection,
+        ::Matrix{T},
+        t_spin_flag, srs_index)::Int where {T}
+    # Tミノ以外はTスピン条件を満たさない
+    return 0
+end
 
 """
 t-spin判定\\
@@ -248,8 +339,14 @@ t-spin判定\\
 1 t-spin mini\\
 2 t-spin
 """
-function check_tspin(mino::Mino, pos_x, pos_y, direction::DirectionEnum, gamebord::Matrix{T}, t_spin_flag)::Int where {T}
-    if mino != TetrisMino.t_mino || !t_spin_flag
+function check_tspin(::TMino,
+        pos_x,
+        pos_y,
+        direction::AbstractDirection,
+        gamebord::Matrix{T},
+        t_spin_flag,
+        srs_index)::Int where {T}
+    if !t_spin_flag
         return 0
     end
     left = pos_x + 1
@@ -258,21 +355,24 @@ function check_tspin(mino::Mino, pos_x, pos_y, direction::DirectionEnum, gamebor
     lower = upper + 2
     height, width = size(gamebord)
     bord = ones(T, height + 2, width + 2)
-    bord[2:end-1, 2:end-1] = gamebord
+    bord[2:(end - 1), 2:(end - 1)] = gamebord
     lu = bord[upper, left]
     ll = bord[lower, left]
     ru = bord[upper, right]
     rl = bord[lower, right]
     if lu + ll + ru + rl >= 3
-        if direction == Direction.north
+        # SRSのにおける回転補正の４番目であればMiniではない
+        # https://tetris-matome.com/judgment/
+        srs_index == 4 &&
+            return 2
+        direction == Direction.north &&
             return lu == ru ? 2 : 1
-        elseif direction == Direction.west
+        direction == Direction.west &&
             return lu == ll ? 2 : 1
-        elseif direction == Direction.south
+        direction == Direction.south &&
             return ll == rl ? 2 : 1
-        elseif direction == Direction.east
+        direction == Direction.east &&
             return ru == rl ? 2 : 1
-        end
     end
     return 0
 end

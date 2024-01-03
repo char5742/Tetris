@@ -4,8 +4,7 @@ module GUI
 using Printf
 include("const.jl")
 # ANSIエスケープシーケンス
-const Color = Dict(
-    :black => "\e[30m",
+const Color = Dict(:black => "\e[30m",
     :red => "\e[31m",
     :blue => "\e[34m",
     :green => "\e[32m",
@@ -17,8 +16,7 @@ const Color = Dict(
     :bold => "\038[1m",
     :underline => "\e[4m",
     :invisible => "\e[08m",
-    :reverce => "\e[07m",
-)
+    :reverce => "\e[07m")
 
 const block_color = [
     (50, 50, 50),
@@ -37,13 +35,15 @@ const block_color = [
 const col = 10  # 10 columns
 const row = 20  # 20 rows
 
-
 colored(str::String, sym) = string(Color[sym], str, Color[:end])
-colored(str::String, i::Integer) = string(@sprintf("\e[48;2;%s;%s;%sm", block_color[(i-1)%11+1]...), str, Color[:end])
-
+function colored(str::String, i::Integer)
+    string(@sprintf("\e[48;2;%s;%s;%sm", block_color[(i - 1) % 11 + 1]...),
+        str,
+        Color[:end])
+end
 
 function open_terminal()
-    run(`cmd /c start  powershell "Get-Content .\\board.txt -Wait -Tail 24"`, wait=false)
+    run(`cmd /c start  powershell "Get-Content .\\board.txt -Wait -Tail 24"`, wait = false)
 end
 
 struct WINDOW
@@ -54,17 +54,32 @@ struct PDCCOLOR
     b::Int16
     mapped::Bool
 end
-curses = joinpath(PROJECT_ROOT, "pdcurses.dll")
-chmod(curses, filemode(curses) | 0o755)
+if Sys.iswindows()
+    curses = joinpath(PROJECT_ROOT, "lib/pdcurses.dll")
+    chmod(curses, filemode(curses) | 0o755)
+elseif Sys.isapple()
+    curses = :libncurses
+    # もしシステムにncursesがなければエラー
+    path = Base.Libc.Libdl.find_library(curses, String[])
+    isempty(path) && throw(ErrorException("このシステムにはncursesがありません"))
+end
 initscr() = ccall((:initscr, curses), Ptr{WINDOW}, ())
 endwin() = ccall((:endwin, curses), Cint, ())
 noecho() = ccall((:noecho, curses), Cint, ())
+cbreak() = ccall((:cbreak, curses), Cint, ())
+keypad(window, flag) = ccall((:keypad, curses), Cint, (Ptr{WINDOW}, Cint), window, flag)
 curs_set(n::Int) = ccall((:curs_set, curses), Cint, (Cint,), n)
 start_color() = ccall((:start_color, curses), Cint, ())
-init_color(n::Int, r::Int, g::Int, b::Int) = ccall((:init_color, curses), Cint, (Cshort, Cshort, Cshort, Cshort), n, r, g, b)
-init_pair(pair::Int, fg::Int, bg::Int) = ccall((:init_pair, curses), Cint, (Cshort, Cshort, Cshort), pair, fg, bg)
+function init_color(n::Int, r::Int, g::Int, b::Int)
+    ccall((:init_color, curses), Cint, (Cshort, Cshort, Cshort, Cshort), n, r, g, b)
+end
+function init_pair(pair::Int, fg::Int, bg::Int)
+    ccall((:init_pair, curses), Cint, (Cshort, Cshort, Cshort), pair, fg, bg)
+end
 clear() = ccall((:clear, curses), Cint, ())
-mvaddstr(x::Int, y::Int, text::String) = ccall((:mvaddstr, curses), Cint, (Cint, Cint, Cstring), x, y, text)
+function mvaddstr(x::Int, y::Int, text::String)
+    ccall((:mvaddstr, curses), Cint, (Cint, Cint, Cstring), x, y, text)
+end
 refresh() = ccall((:refresh, curses), Cint, ())
 napms(t::Int) = ccall((:napms, curses), Cint, (Cint,), t)
 wgetch(window) = ccall((:wgetch, curses), Cint, (Ptr{WINDOW},), window)
@@ -85,6 +100,8 @@ function init_screen()::Ptr{GUI.WINDOW}
     end
     GUI.start_color()
     GUI.noecho()
+    GUI.cbreak()
+    GUI.keypad(window, 1)
     GUI.curs_set(0)
     for (i, c) in enumerate(GUI.block_color)
         # 標準の色番号とかぶらないように100番目からセット
@@ -99,20 +116,23 @@ function endwin()
     GUI.endwin()
 end
 
-function draw_game(board; score=nothing, ren=nothing, hold=nothing, next=nothing, step=1)
-
+function draw_game(board;
+        score = nothing,
+        ren = nothing,
+        hold = nothing,
+        next = nothing,
+        step = 1)
     GUI.clear()
-    for i in 1:GUI.row
-        for j in 1:GUI.col
+    for i in 1:(GUI.row)
+        for j in 1:(GUI.col)
             coloerd_mvaddstr(i, 8 + j * 2, "  ", board[5:end, :][i, j] + 1)
         end
-
     end
     # NEXT描画
     GUI.mvaddstr(2, 34, "next")
     coloerd_mvaddstr(3, 34, "$(next[end].name)", next[end].color + 1)
     for i in 1:4
-        coloerd_mvaddstr(i + 4, 34, "$(next[end-i].name)", next[end-i].color + 1)
+        coloerd_mvaddstr(i + 4, 34, "$(next[end-i].name)", next[end - i].color + 1)
     end
     # HOLD描画
     GUI.mvaddstr(2, 2, "hold")
@@ -130,7 +150,7 @@ function coloerd_mvaddstr(x, y, text, color)
     GUI.attrset(0)
 end
 
-function draw_game(state::GameState; step=1)
+function draw_game(state::GameState; step = 1)
     mino = state.current_mino
     board = state.current_game_board.color
     pos_x = state.current_position.x
@@ -138,18 +158,24 @@ function draw_game(state::GameState; step=1)
     board_h, board_w = size(board)
     h, w = size(mino.block)
     current_mino = zeros(Int, board_h + 2, board_w + 4)
-    current_mino[pos_y:pos_y+h-1, pos_x+2:pos_x+w-1+2] += mino.block * mino.color
-    draw_game(board + current_mino[1:end-2, 3:end-2]; score=state.score, ren=state.combo, hold=state.hold_mino, next=state.mino_list[end-4:end], step=step)
+    current_mino[pos_y:(pos_y + h - 1), (pos_x + 2):(pos_x + w - 1 + 2)] += mino.block *
+                                                                            mino.color
+    draw_game(board + current_mino[1:(end - 2), 3:(end - 2)];
+        score = state.score,
+        ren = state.ren,
+        hold = state.hold_mino,
+        next = state.mino_list[(end - 4):end],
+        step = step)
 end
 
-function draw_game2file(board; score=0, last_score=0)
+function draw_game2file(board; score = 0, last_score = 0)
     io = IOBuffer()
     # 先頭荷カーソル移動
     print(io, "\e[1;1f")
     # カーソルよりあとを削除
     print(io, "\e[0J")
-    for i in 1:GUI.row
-        for j in 1:GUI.col
+    for i in 1:(GUI.row)
+        for j in 1:(GUI.col)
             print(io, GUI.colored("  ", board[i, j] + 1))
         end
         # カーソルに位置を一行下に
@@ -168,4 +194,3 @@ function getc1()
     ccall(:jl_tty_set_mode, Int32, (Ptr{Cvoid}, Int32), stdin.handle, false)
     c
 end
-
