@@ -48,7 +48,6 @@ elseif Sys.isapple()
             ch = getch()
             push!(buf, ch)
         end
-        @show buf
         buf
     end
 
