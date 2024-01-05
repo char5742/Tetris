@@ -10,6 +10,7 @@ mutable struct CursesModel <: AbstractModel
     ren::Int8
     hold::Union{AbstractMino, Nothing}
     next::Vector{AbstractMino}
+    btb::Bool
 end
 
 function CursesModel()
@@ -20,7 +21,7 @@ function CursesModel()
     ren = 0
     hold = nothing
     next = []
-    return CursesModel(board, mino, ghost, score, ren, hold, next)
+    return CursesModel(board, mino, ghost, score, ren, hold, next, false)
 end
 
 function init(::CursesModel)
@@ -33,21 +34,22 @@ end
 
 function set_state!(model::CursesModel, state::GameState)
     model.board .= state.current_game_board.color[5:end, :]
-    target = zeros(Int8, row+4, col)
+    target = zeros(Int8, row + 4, col)
     height, width = size(state.current_mino.block)
     for i in 1:height, j in 1:width
         if state.current_mino.block[i, j] > 0
             target[state.current_position.y + i - 1,
-                state.current_position.x + j - 1] = state.current_mino.block[i, j] * state.current_mino.color
+            state.current_position.x + j - 1] = state.current_mino.block[i, j] *
+                                                state.current_mino.color
         end
     end
     model.mino .= target[5:end, :]
-    target .= zeros(Int8, row+4, col)
+    target .= zeros(Int8, row + 4, col)
     position = get_ghost_position(state)
     for i in 1:height, j in 1:width
         if state.current_mino.block[i, j] > 0
             target[position.y + i - 1,
-                position.x + j - 1] = state.current_mino.block[i, j] * state.current_mino.color
+            position.x + j - 1] = state.current_mino.block[i, j] * state.current_mino.color
         end
     end
     model.ghost .= target[5:end, :]
@@ -55,6 +57,7 @@ function set_state!(model::CursesModel, state::GameState)
     model.ren = state.ren
     model.hold = state.hold_mino
     model.next = state.mino_list
+    model.btb = state.back_to_back_flag
 end
 
 function update(model::CursesModel)
@@ -97,6 +100,7 @@ function update(model::CursesModel)
         Curses.coloerd_mvaddstr(3, 2, "$(model.hold.name)", model.hold.color + 1)
     Curses.mvaddstr(10, 34, string("score: ", model.score))
     Curses.mvaddstr(13, 34, string("REN: ", model.ren))
+    model.btb  && Curses.mvaddstr(14, 34, "BtB")
     Curses.refresh()
 end
 
