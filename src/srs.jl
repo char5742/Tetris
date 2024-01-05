@@ -81,15 +81,17 @@ function is_valid_mino_movement(mino::AbstractMino,
     cnt = 0
     height, width = size(mino.block)
     @inbounds for j in 1:width
-        @simd for i in 1:height
-            cnt += ifelse(!checkbounds(Bool,
-                    binary_board,
-                    position.y + i - 1 + mv_y,
-                    position.x + j - 1 + mv_x),
+        for i in 1:height
+            if !checkbounds(Bool,
+                binary_board,
+                position.y + i - 1 + mv_y,
+                position.x + j - 1 + mv_x)
                 # 画面外であれば、ブロックがあるとみなす
-                mino.block[i, j],
-                binary_board[position.y + i - 1 + mv_y, position.x + j - 1 + mv_x] *
-                mino.block[i, j])
+                cnt += mino.block[i, j]
+            else
+                cnt += binary_board[position.y + i - 1 + mv_y, position.x + j - 1 + mv_x] *
+                       mino.block[i, j]
+            end
         end
     end
     return cnt == 0
