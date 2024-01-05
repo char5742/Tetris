@@ -15,7 +15,7 @@ include("component/mino_component.jl")
 include("component/position_component.jl")
 include("component/action_component.jl")
 include("component/game_board_component.jl")
-export Mino, GameBoard, Position, Action,
+export AbstractMino, Mino, GameBoard, Position, Action,
     AbstractAction, HorizontalMoveAction, DownwardMoveAction, SoftDropAction, RotateAction,
     HoldAction, HardDropAction, EmptyAction, Actionflow
 include("srs.jl")
