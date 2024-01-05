@@ -36,7 +36,7 @@ end
 
 @kwdef struct ZMino <: AbstractMino
     name::String = "Zmino"
-    color::Int8 = 5
+    color::Int8 = 2
     "北:0 西:1 南:2 東:3"
     direction::AbstractDirection = Direction.north
     block::Matrix{Int8} = [1 1 0
@@ -66,7 +66,7 @@ end
 
 @kwdef struct TMino <: AbstractMino
     name::String = "Tmino"
-    color::Int8 = 2
+    color::Int8 = 5
     "北:0 西:1 南:2 東:3"
     direction::AbstractDirection = Direction.north
     block::Matrix{Int8} = [0 1 0

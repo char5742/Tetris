@@ -102,8 +102,7 @@ end
 操作
 """
 function action!(::GameState, ::AbstractAction)
-    # 未実装エラー
-    throw(ArgumentError("Umimplemented Error"))
+    nothing
 end
 
 function action!(state::GameState, action::RotateAction)
@@ -375,4 +374,17 @@ function check_tspin(::TMino,
             return ru == rl ? 2 : 1
     end
     return 0
+end
+
+function get_ghost_position(state::GameState)::Position
+    new_position = state.current_position
+    is_valid = true
+    while is_valid
+        new_position, is_valid = move(state.current_mino,
+            new_position,
+            state.current_game_board.binary,
+            0 |> Int8,
+            1 |> Int8)
+    end
+    new_position
 end
