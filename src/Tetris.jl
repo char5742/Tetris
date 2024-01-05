@@ -19,7 +19,7 @@ export AbstractMino, Mino, GameBoard, Position, Action,
     AbstractAction, HorizontalMoveAction, DownwardMoveAction, SoftDropAction, RotateAction,
     HoldAction, HardDropAction, EmptyAction, Actionflow
 include("srs.jl")
-export action!, move, rotate
+export action!, move, rotate, is_valid_mino_movement
 include("game.jl")
 export GameState, put_mino!, check_tspin, game_end!, get_ghost_position
 include("move.jl")

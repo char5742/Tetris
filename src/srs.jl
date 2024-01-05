@@ -3,7 +3,7 @@ function move(mino::AbstractMino,
         binary_board::Matrix{Int8},
         mv_x::Int8,
         mv_y::Int8)::Tuple{Position, Bool}
-    if _is_valid_mino_movement(mino, position, binary_board, mv_x, mv_y)
+    if is_valid_mino_movement(mino, position, binary_board, mv_x, mv_y)
         return Position(position.x + mv_x, position.y + mv_y), true
     end
     position, false
@@ -26,36 +26,36 @@ function rotate(mino::AbstractMino,
         return mino, position, false, 0
     end
     new_mino = _rotate_mino(mino, rotate)
-    if _is_valid_mino_movement(new_mino, position, binary_board, 0 |> Int8, 0 |> Int8)
+    if is_valid_mino_movement(new_mino, position, binary_board, 0 |> Int8, 0 |> Int8)
         return new_mino, position, true, 0
     end
     mv_x, mv_y, srs_id = (() -> begin
         # Iミノ以外
         if mino_height == 3
             mv_x, mv_y = _rotate1(mino, rotate)
-            _is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
+            is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
                 return (mv_x, mv_y, 1)
             mv_x, mv_y = _rotate2(mino, rotate)
-            _is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
+            is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
                 return (mv_x, mv_y, 2)
             mv_x, mv_y = _rotate3(mino, rotate)
-            _is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
+            is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
                 return (mv_x, mv_y, 3)
             mv_x, mv_y = _rotate4(mino, rotate)
-            _is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
+            is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
                 return (mv_x, mv_y, 4)
         else
             mv_x, mv_y = _rotate1_i(mino, rotate)
-            _is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
+            is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
                 return (mv_x, mv_y, 1)
             mv_x, mv_y = _rotate2_i(mino, rotate)
-            _is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
+            is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
                 return (mv_x, mv_y, 2)
             mv_x, mv_y = _rotate3_i(mino, rotate)
-            _is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
+            is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
                 return (mv_x, mv_y, 3)
             mv_x, mv_y = _rotate4_i(mino, rotate)
-            _is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
+            is_valid_mino_movement(new_mino, position, binary_board, mv_x, mv_y) &&
                 return (mv_x, mv_y, 4)
         end
         return (0, 0, 0)
@@ -73,7 +73,7 @@ end
 1: 可能
 0: 不可能
 """
-function _is_valid_mino_movement(mino::AbstractMino,
+function is_valid_mino_movement(mino::AbstractMino,
         position::Position,
         binary_board::Matrix{Int8},
         mv_x::Int8,
