@@ -24,7 +24,6 @@ function manual(game_state::GameState, move_state::MoveState, display::AbstractM
     pre_action = EmptyAction()
     while !game_state.game_over_flag
         action = key_to_action()
-        move_state.fall_speed = 1
 
         is_action_ready = process_das!(move_state, game_state, pre_action, action)
         if is_action_ready
