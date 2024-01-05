@@ -63,7 +63,8 @@ function Action(x::Int8, y::Int8, rotate::Int8)
     x != 0 && return HorizontalMoveAction(x)
     y != 0 && return DownwardMoveAction()
     rotate != 0 && return RotateAction(rotate)
-    throw(ArgumentError("x, y, rotateのいずれかは0以外の値を入れてください"))
+    
+    EmptyAction()
 end
 
 Action(x::Int64, y::Int64, rotate::Int64) = Action(x |> Int8, y |> Int8, rotate |> Int8)
