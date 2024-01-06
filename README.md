@@ -10,6 +10,14 @@ julia --project
 ]
 (Tetris) pkg> instantiate
 ```
+
+画面描画にcursesを使用しています。Windowsの場合は同梱しているため、追加のインストールは不要です。
+Macの場合は以下のコマンドでインストールしてください。
+```console
+brew install ncurses
+```
+その他OSは各自の環境に合わせてインストールしてください
+
 ## プレイ方法
 ```console
 julia --project main.jl
