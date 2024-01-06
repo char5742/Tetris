@@ -121,7 +121,7 @@ end
 function action!(state::GameState, action::HorizontalMoveAction)
     x = action.x
 
-    new_position, _ = move(state.current_mino,
+    new_position, = move(state.current_mino,
         state.current_position,
         state.current_game_board.binary,
         x,
@@ -131,7 +131,7 @@ function action!(state::GameState, action::HorizontalMoveAction)
 end
 
 function action!(state::GameState, ::DownwardMoveAction)
-    new_position, _ = move(state.current_mino,
+    new_position, = move(state.current_mino,
         state.current_position,
         state.current_game_board.binary,
         0 |> Int8,

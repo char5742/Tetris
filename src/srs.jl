@@ -20,7 +20,7 @@ function rotate(mino::AbstractMino,
         position::Position,
         binary_board::Matrix{Int8},
         rotate::Int8)::Tuple{AbstractMino, Position, Bool, Int8}
-    mino_height, _ = size(mino.block)
+    mino_height, = size(mino.block)
     # Oミノは回転しない
     if mino_height == 2
         return mino, position, false, 0
@@ -61,7 +61,7 @@ function rotate(mino::AbstractMino,
         return (0, 0, 0)
     end)()
     if srs_id != 0
-        new_position, _ = move(new_mino, position, binary_board, mv_x, mv_y)
+        new_position, = move(new_mino, position, binary_board, mv_x, mv_y)
         return new_mino, new_position, true, srs_id
     else
         return mino, position, false, srs_id
