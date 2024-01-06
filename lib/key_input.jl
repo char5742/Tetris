@@ -12,6 +12,7 @@ if Sys.iswindows()
     const VK_A = 0x41
     const VK_S = 0x53
     const VK_D = 0x44
+    const VK_Q = 0x51
     const _key_state_source = joinpath(PROJECT_ROOT, "lib/game.so")
     chmod(_key_state_source, filemode(_key_state_source) | 0o755)
     function get_current_key_state()::Vector{Int32}
@@ -39,6 +40,7 @@ elseif Sys.isapple()
     const VK_A = 97
     const VK_S = 115
     const VK_D = 100
+    const VK_Q = 113
     curses = :libncurses
     getch() = ccall((:getch, curses), Cint, ())
     function get_current_key_state()::Vector{Int32}

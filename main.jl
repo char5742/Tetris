@@ -44,6 +44,8 @@ end
 
 function key_to_action()::AbstractAction
     state = get_current_key_state()
+    quit = is_pushed(state, :VK_Q) == 1 || is_pushed(state, :VK_ESCAPE) == 1
+    quit && exit()
     x = -is_pushed(state, :VK_LEFT) + is_pushed(state, :VK_RIGHT)
     y = is_pushed(state, :VK_DOWN)
     turn_right = is_pushed(state, :VK_UP) + is_pushed(state, :VK_Z) +
