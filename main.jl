@@ -3,58 +3,67 @@ using .Tetris
 function main()
     game_state = GameState()
     move_state = MoveState()
-    init_screen()
-    manual(game_state, move_state)
-    endwin()
+    display = CursesModel()
+    try
+        init(display)
+        manual(game_state, move_state, display)
+    catch e
+        open("error.log", "w") do io
+            showerror(io, e, catch_backtrace())
+        end
+    finally
+        fin(display)
+    end
 end
 
-function manual(game_state::GameState, move_state::MoveState)
+function manual(game_state::GameState, move_state::MoveState, display::AbstractModel)
     # ゲームオーバーになるまで繰り返す
-    draw_game(game_state)
+    set_state!(display, game_state)
+    update(display)
     start_time = time_ns()
+    pre_action = EmptyAction()
     while !game_state.game_over_flag
-        x = -get_key_state(:VK_LEFT) + get_key_state(:VK_RIGHT)
-        y = get_key_state(:VK_DOWN)
-        r = -get_key_state(:VK_UP) - get_key_state(:VK_Z) + get_key_state(:VK_CONTROL)
-        get_key_state(:VK_ESCAPE) == 1 && exit()
-        hard_drop = get_key_state(:VK_SPACE) == 1
-        hold = get_key_state(:VK_SHIFT) == 1
-        action = Action(x  |> Int8, y  |> Int8, r  |> Int8, hold  |> Int8, hard_drop  |> Int8)
+        action = key_to_action()
 
-        if move_state.set_count > 0 && (action.x != 0 || action.y != 0 || action.rotate != 0) && move_state.set_safe_cout < 15
-            move_state.set_safe_cout += 1
-            move_state.set_count = 0
-        end
-        action!(game_state, action)
-
-
-        move_state.fall_count += 1
-        if move_state.fall_count == 60
-            move_state.fall_count = 0
-            action = Action(0  |> Int8, 1  |> Int8, 0  |> Int8)
-            if valid_movement(game_state.current_mino, game_state.current_position, game_state.current_game_board.binary, 0 |> Int8, 1 |> Int8)
-                game_state.current_position = move(game_state.current_position, 0 |> Int8, 1 |> Int8)
-                move_state.set_count = 0
-            end
+        is_action_ready = process_das!(move_state, game_state, pre_action, action)
+        if is_action_ready
+            reset_auto_set_delay_on_move!(move_state, action)
+            action!(game_state, action)
         end
 
-        if !valid_movement(game_state.current_mino, game_state.current_position, game_state.current_game_board.binary, 0 |> Int8, 1 |> Int8)
-            move_state.set_count += 1
-        end
-        if move_state.set_count == 30 || game_state.hard_drop_flag
-            move_state.set_count = 0
-            move_state.set_safe_cout = 0
-            put_mino!(game_state)
-
-        end
+        pre_action = action
+        fall!(move_state, game_state, action)
+        put_mino!(move_state, game_state)
 
         sleep60fps(start_time)
         start_time = time_ns()
-        draw_game(game_state)
+        set_state!(display, game_state)
+        update(display)
     end
+end
+
+function key_to_action()::AbstractAction
+    state = get_current_key_state()
+    quit = is_pushed(state, :VK_Q) == 1 || is_pushed(state, :VK_ESCAPE) == 1
+    quit && exit()
+    x = -is_pushed(state, :VK_LEFT) + is_pushed(state, :VK_RIGHT)
+    y = is_pushed(state, :VK_DOWN)
+    turn_right = is_pushed(state, :VK_UP) + is_pushed(state, :VK_Z) +
+                 is_pushed(state, :VK_D)
+    turn_left = is_pushed(state, :VK_CONTROL) + is_pushed(state, :VK_S)
+    r = -turn_right + turn_left
+    is_pushed(state, :VK_ESCAPE) == 1 && exit()
+    hard_drop = is_pushed(state, :VK_SPACE) == 1
+    hold = is_pushed(state, :VK_SHIFT) + is_pushed(state, :VK_A) != 0
+
+    hold && return HoldAction()
+    hard_drop && return HardDropAction()
+    x != 0 && return HorizontalMoveAction(x)
+    y != 0 && return SoftDropAction()
+    r != 0 && return RotateAction(r)
+    EmptyAction()
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
     main()
-
 end

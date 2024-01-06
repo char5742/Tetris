@@ -1,11 +1,111 @@
-
-module GUI
-
 using Printf
-include("const.jl")
+
+abstract type AbstractModel end
+
+mutable struct CursesModel <: AbstractModel
+    board::Array{Int8, 2}
+    mino::Array{Int8, 2}
+    ghost::Array{Int8, 2}
+    score::Int64
+    ren::Int8
+    hold::Union{AbstractMino, Nothing}
+    next::Vector{AbstractMino}
+    btb::Bool
+end
+
+function CursesModel()
+    board = zeros(Int8, row, col)
+    mino = zeros(Int8, row, col)
+    ghost = zeros(Int8, row, col)
+    score = 0
+    ren = 0
+    hold = nothing
+    next = []
+    return CursesModel(board, mino, ghost, score, ren, hold, next, false)
+end
+
+function init(::CursesModel)
+    Curses.init_screen()
+end
+
+function fin(::CursesModel)
+    Curses.endwin()
+end
+
+function set_state!(model::CursesModel, state::GameState)
+    model.board .= state.current_game_board.color[5:end, :]
+    target = zeros(Int8, row + 4, col)
+    height, width = size(state.current_mino.block)
+    for i in 1:height, j in 1:width
+        if state.current_mino.block[i, j] > 0
+            target[state.current_position.y + i - 1,
+            state.current_position.x + j - 1] = state.current_mino.block[i, j] *
+                                                state.current_mino.color
+        end
+    end
+    model.mino .= target[5:end, :]
+    target .= zeros(Int8, row + 4, col)
+    position = get_ghost_position(state)
+    for i in 1:height, j in 1:width
+        if state.current_mino.block[i, j] > 0
+            target[position.y + i - 1,
+            position.x + j - 1] = state.current_mino.block[i, j] * state.current_mino.color
+        end
+    end
+    model.ghost .= target[5:end, :]
+    model.score = state.score
+    model.ren = state.ren
+    model.hold = state.hold_mino
+    model.next = state.mino_list
+    model.btb = state.back_to_back_flag
+end
+
+function update(model::CursesModel)
+    Curses.clear()
+    # 盤面描画
+    for i in 1:row
+        for j in 1:col
+            Curses.coloerd_mvaddstr(i, 8 + j * 2, "  ", model.board[i, j] + 1)
+        end
+    end
+
+    # ゴースト描画
+    for i in 1:row
+        for j in 1:col
+            if model.ghost[i, j] > 0
+                Curses.coloerd_mvaddstr(i, 8 + j * 2, "[]", model.ghost[i, j] + 1 + 100)
+            end
+        end
+    end
+    # ミノ描画
+    for i in 1:row
+        for j in 1:col
+            if model.mino[i, j] > 0
+                Curses.coloerd_mvaddstr(i, 8 + j * 2, "  ", model.mino[i, j] + 1)
+            end
+        end
+    end
+    # NEXT描画
+    Curses.mvaddstr(2, 34, "next")
+    Curses.coloerd_mvaddstr(3, 34, "$(model.next[end].name)", model.next[end].color + 1)
+    for i in 1:4
+        Curses.coloerd_mvaddstr(i + 4,
+            34,
+            "$(model.next[end-i].name)",
+            model.next[end - i].color + 1)
+    end
+    # HOLD描画
+    Curses.mvaddstr(2, 2, "hold")
+    !isnothing(model.hold) &&
+        Curses.coloerd_mvaddstr(3, 2, "$(model.hold.name)", model.hold.color + 1)
+    Curses.mvaddstr(10, 34, string("score: ", model.score))
+    Curses.mvaddstr(13, 34, string("REN: ", model.ren))
+    model.btb  && Curses.mvaddstr(14, 34, "BtB")
+    Curses.refresh()
+end
+
 # ANSIエスケープシーケンス
-const Color = Dict(
-    :black => "\e[30m",
+const Color = Dict(:black => "\e[30m",
     :red => "\e[31m",
     :blue => "\e[34m",
     :green => "\e[32m",
@@ -17,8 +117,7 @@ const Color = Dict(
     :bold => "\038[1m",
     :underline => "\e[4m",
     :invisible => "\e[08m",
-    :reverce => "\e[07m",
-)
+    :reverce => "\e[07m")
 
 const block_color = [
     (50, 50, 50),
@@ -34,123 +133,26 @@ const block_color = [
     (100, 100, 100),
 ]
 
-const col = 10  # 10 columns
-const row = 20  # 20 rows
-
-
 colored(str::String, sym) = string(Color[sym], str, Color[:end])
-colored(str::String, i::Integer) = string(@sprintf("\e[48;2;%s;%s;%sm", block_color[(i-1)%11+1]...), str, Color[:end])
-
+function colored(str::String, i::Integer)
+    string(@sprintf("\e[48;2;%s;%s;%sm", block_color[(i - 1) % 11 + 1]...),
+        str,
+        Color[:end])
+end
 
 function open_terminal()
-    run(`cmd /c start  powershell "Get-Content .\\board.txt -Wait -Tail 24"`, wait=false)
+    run(`cmd /c start  powershell "Get-Content .\\board.txt -Wait -Tail 24"`, wait = false)
 end
 
-struct WINDOW
-end
-struct PDCCOLOR
-    r::Int16
-    g::Int16
-    b::Int16
-    mapped::Bool
-end
-curses = joinpath(PROJECT_ROOT, "pdcurses.dll")
-chmod(curses, filemode(curses) | 0o755)
-initscr() = ccall((:initscr, curses), Ptr{WINDOW}, ())
-endwin() = ccall((:endwin, curses), Cint, ())
-noecho() = ccall((:noecho, curses), Cint, ())
-curs_set(n::Int) = ccall((:curs_set, curses), Cint, (Cint,), n)
-start_color() = ccall((:start_color, curses), Cint, ())
-init_color(n::Int, r::Int, g::Int, b::Int) = ccall((:init_color, curses), Cint, (Cshort, Cshort, Cshort, Cshort), n, r, g, b)
-init_pair(pair::Int, fg::Int, bg::Int) = ccall((:init_pair, curses), Cint, (Cshort, Cshort, Cshort), pair, fg, bg)
-clear() = ccall((:clear, curses), Cint, ())
-mvaddstr(x::Int, y::Int, text::String) = ccall((:mvaddstr, curses), Cint, (Cint, Cint, Cstring), x, y, text)
-refresh() = ccall((:refresh, curses), Cint, ())
-napms(t::Int) = ccall((:napms, curses), Cint, (Cint,), t)
-wgetch(window) = ccall((:wgetch, curses), Cint, (Ptr{WINDOW},), window)
-flushinp() = ccall((:flushinp, curses), Cint, ())
-timeout(t::Int) = ccall((:timeout, curses), Cint, (Cint,), t)
-attrset(color::PDCCOLOR) = ccall((:attrset, curses), Cint, (PDCCOLOR,), color)
-attrset(n::Int) = ccall((:attrset, curses), Cint, (Cint,), n)
-color_set(n::Int) = ccall((:color_set, curses), Cint, (Cshort, Ptr{Cvoid}), n, C_NULL)
-
-end
-
-import .GUI
-
-function init_screen()::Ptr{GUI.WINDOW}
-    window = GUI.initscr()
-    if (window == C_NULL)
-        throw(ErrorException("can't init"))
-    end
-    GUI.start_color()
-    GUI.noecho()
-    GUI.curs_set(0)
-    for (i, c) in enumerate(GUI.block_color)
-        # 標準の色番号とかぶらないように100番目からセット
-        GUI.init_color(100 + i, (c .* (1000 / 255) |> x -> floor.(Int, x))...)
-        GUI.init_pair(100 + i, 0, 100 + i)
-    end
-    GUI.timeout(1)
-    window
-end
-
-function endwin()
-    GUI.endwin()
-end
-
-function draw_game(board; score=nothing, ren=nothing, hold=nothing, next=nothing, step=1)
-
-    GUI.clear()
-    for i in 1:GUI.row
-        for j in 1:GUI.col
-            coloerd_mvaddstr(i, 8 + j * 2, "  ", board[5:end, :][i, j] + 1)
-        end
-
-    end
-    # NEXT描画
-    GUI.mvaddstr(2, 34, "next")
-    coloerd_mvaddstr(3, 34, "$(next[end].name)", next[end].color + 1)
-    for i in 1:4
-        coloerd_mvaddstr(i + 4, 34, "$(next[end-i].name)", next[end-i].color + 1)
-    end
-    # HOLD描画
-    GUI.mvaddstr(2, 2, "hold")
-    !isnothing(hold) && coloerd_mvaddstr(3, 2, "$(hold.name)", hold.color + 1)
-    !isnothing(score) && GUI.mvaddstr(10, 34, string("score: ", score))
-    !isnothing(score) && GUI.mvaddstr(11, 34, string("mscore: ", score / step))
-    !isnothing(ren) && GUI.mvaddstr(13, 34, string("REN: ", ren))
-    GUI.refresh()
-    # gamec.game_over_flag && print(io, "\e[14;34f", "BtB")
-end
-
-function coloerd_mvaddstr(x, y, text, color)
-    GUI.color_set(color + 100)
-    GUI.mvaddstr(x, y, text)
-    GUI.attrset(0)
-end
-
-function draw_game(state::GameState; step=1)
-    mino = state.current_mino
-    board = state.current_game_board.color
-    pos_x = state.current_position.x
-    pos_y = state.current_position.y
-    board_h, board_w = size(board)
-    h, w = size(mino.block)
-    current_mino = zeros(Int, board_h + 2, board_w + 4)
-    current_mino[pos_y:pos_y+h-1, pos_x+2:pos_x+w-1+2] += mino.block * mino.color
-    draw_game(board + current_mino[1:end-2, 3:end-2]; score=state.score, ren=state.combo, hold=state.hold_mino, next=state.mino_list[end-4:end], step=step)
-end
-
-function draw_game2file(board; score=0, last_score=0)
+function draw_game2file(board; score = 0, last_score = 0)
     io = IOBuffer()
     # 先頭荷カーソル移動
     print(io, "\e[1;1f")
     # カーソルよりあとを削除
     print(io, "\e[0J")
-    for i in 1:GUI.row
-        for j in 1:GUI.col
-            print(io, GUI.colored("  ", board[i, j] + 1))
+    for i in 1:(row)
+        for j in 1:(col)
+            print(io, colored("  ", board[i, j] + 1))
         end
         # カーソルに位置を一行下に
         print(io, "\e[1E")
@@ -168,4 +170,3 @@ function getc1()
     ccall(:jl_tty_set_mode, Int32, (Ptr{Cvoid}, Int32), stdin.handle, false)
     c
 end
-

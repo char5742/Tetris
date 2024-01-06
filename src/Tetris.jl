@@ -1,15 +1,29 @@
 module Tetris
+using LinearAlgebra
 include("const.jl")
-include("utils/Utils.jl")
-export mysleep, sleep60fps, get_key_state
-include("component/Component.jl")
-export Mino, GameBoard, Position, Action
-include("action.jl")
-export action!, valid_movement, move, rotate
-include("move.jl")
-export MoveState
+
+include("../lib/curses.jl")
+include("../lib/key_input.jl")
+export get_current_key_state, is_pushed
+
+include("utils/sleep.jl")
+export mysleep, sleep60fps
+
+include("component/direction_component.jl")
+using .Direction
+include("component/mino_component.jl")
+include("component/position_component.jl")
+include("component/action_component.jl")
+include("component/game_board_component.jl")
+export AbstractMino, Mino, GameBoard, Position, Action,
+    AbstractAction, HorizontalMoveAction, DownwardMoveAction, SoftDropAction, RotateAction,
+    HoldAction, HardDropAction, EmptyAction, Actionflow
+include("srs.jl")
+export action!, move, rotate, is_valid_mino_movement
 include("game.jl")
-export GameState, put_mino!, check_tspin, game_end!
+export GameState, put_mino!, check_tspin, game_end!, get_ghost_position
+include("move.jl")
+export MoveState, reset_auto_set_delay_on_move!, fall!, put_mino!, process_das!
 include("gui.jl")
-export draw_game, draw_game2file, init_screen, endwin
+export  AbstractModel, CursesModel, draw_game2file, update, init, fin, set_state!
 end # module Tetris
