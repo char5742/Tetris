@@ -51,7 +51,7 @@ function key_to_action()::AbstractAction
     turn_right = is_pushed(state, :VK_UP) + is_pushed(state, :VK_Z) +
                  is_pushed(state, :VK_D)
     turn_left = is_pushed(state, :VK_CONTROL) + is_pushed(state, :VK_S)
-    r = turn_right - turn_left
+    r = -turn_right + turn_left
     is_pushed(state, :VK_ESCAPE) == 1 && exit()
     hard_drop = is_pushed(state, :VK_SPACE) == 1
     hold = is_pushed(state, :VK_SHIFT) + is_pushed(state, :VK_A) != 0

@@ -22,30 +22,31 @@ function Base.:(+)(d::AbstractDirection, i::Integer)
 end
 
 function _next_direction(::North)
-    East()
+    west
 end
 
 function _next_direction(::East)
-    South()
+    north
 end
 
 function _next_direction(::South)
-    West()
+    east
 end
 
 function _next_direction(::West)
-    North()
+   south
 end
 
 function Base.Int(d::AbstractDirection)
     if d == north
         return 0
-    elseif d == east
+    elseif d == west
         return 1
     elseif d == south
         return 2
-    elseif d == west
+    elseif d == east
         return 3
+
     end
 end
 
