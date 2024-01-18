@@ -155,15 +155,12 @@ end
 
 "ハードドロップ 行ける限り下まで移動させる"
 function hard_drop!(state::GameState)
-    is_valid = true
-    new_position = state.current_position
-    while is_valid
-        state.current_position = new_position
-        new_position, is_valid = move(state.current_mino,
-            state.current_position,
-            state.current_game_board.binary,
-            0 |> Int8,
-            1 |> Int8)
+    while is_valid_mino_movement(state.current_mino,
+        state.current_position,
+        state.current_game_board.binary,
+        0 |> Int8,
+        1 |> Int8)
+        action!(state, DownwardMoveAction())
     end
     state.hard_drop_flag = true
 end
