@@ -23,8 +23,8 @@ end
 struct RotateAction <: AbstractAction
     """
     -1~1
-    -1: 左回転
-    1: 右回転
+    1: 左回転
+    -1: 右回転
     """
     rotate::Int8
 end
